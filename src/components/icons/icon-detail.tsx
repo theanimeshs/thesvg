@@ -12,7 +12,9 @@ import {
   FileCode2,
   Globe,
   Heart,
+  Image,
   Link2,
+  Loader2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +23,7 @@ import type { CopyFormat } from "@/lib/copy-formats";
 import { formatSvg } from "@/lib/copy-formats";
 import { useFavoritesStore } from "@/lib/stores/favorites-store";
 import { cn } from "@/lib/utils";
+import { svgToPng, downloadPng } from "@/lib/svg-to-png";
 
 interface IconDetailProps {
   icon: IconEntry | null;
@@ -62,6 +65,7 @@ const FORMAT_BUTTONS: {
 ];
 
 const DEMO_SIZES = [16, 24, 32, 48, 64];
+const PNG_EXPORT_SIZES = [32, 64, 128, 256, 512];
 
 /** Naive pretty-print: add line breaks between tags so SVG code is readable */
 function formatSvgCode(raw: string): string {
@@ -76,6 +80,8 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const [svgContent, setSvgContent] = useState<string>("");
   const [showCode, setShowCode] = useState(false);
+  const [exportingSize, setExportingSize] = useState<number | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const isFavorite = useFavoritesStore((s) =>
     icon ? s.favorites.includes(icon.slug) : false
@@ -154,6 +160,33 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
       window.open(variantPath, "_blank");
     }
   }, [icon, activeVariant]);
+
+  const handlePngExport = useCallback(
+    async (size: number) => {
+      if (!icon || exportingSize !== null) return;
+      const variantPath =
+        icon.variants[activeVariant as keyof typeof icon.variants] ||
+        icon.variants.default;
+      if (!variantPath) return;
+
+      setExportingSize(size);
+      setExportError(null);
+      try {
+        const blob = await svgToPng(variantPath, size);
+        const variantSuffix =
+          activeVariant !== "default"
+            ? `-${activeVariant.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`
+            : "";
+        downloadPng(blob, `${icon.slug}${variantSuffix}-${size}px`);
+      } catch {
+        setExportError("Could not convert this SVG to PNG. Try another variant.");
+        setTimeout(() => setExportError(null), 3000);
+      } finally {
+        setExportingSize(null);
+      }
+    },
+    [icon, activeVariant, exportingSize]
+  );
 
   if (!icon) return null;
 
@@ -344,6 +377,40 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Export PNG section */}
+        <div className="border-t border-border/30 px-4 py-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <Image className="h-3 w-3 text-muted-foreground" />
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Export PNG
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {PNG_EXPORT_SIZES.map((size) => (
+              <button
+                key={size}
+                type="button"
+                disabled={exportingSize !== null}
+                onClick={() => handlePngExport(size)}
+                className={cn(
+                  "flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
+                  exportingSize === size
+                    ? "border-border/50 bg-muted/60 text-muted-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+                )}
+              >
+                {exportingSize === size ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : null}
+                {size}px
+              </button>
+            ))}
+          </div>
+          {exportError && (
+            <p className="mt-1.5 text-[10px] text-red-500">{exportError}</p>
+          )}
         </div>
 
         {/* SVG code preview */}

@@ -14,7 +14,9 @@ import {
   Globe,
   Heart,
   Home,
+  Image,
   Link2,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import type { CopyFormat } from "@/lib/copy-formats";
 import { formatSvg } from "@/lib/copy-formats";
 import { useFavoritesStore } from "@/lib/stores/favorites-store";
 import { cn } from "@/lib/utils";
+import { svgToPng, downloadPng } from "@/lib/svg-to-png";
 
 interface IconDetailPageProps {
   icon: IconEntry;
@@ -52,6 +55,7 @@ const FORMAT_BUTTONS: {
 ];
 
 const DEMO_SIZES = [16, 24, 32, 48, 64];
+const PNG_EXPORT_SIZES = [32, 64, 128, 256, 512];
 
 function formatSvgCode(raw: string): string {
   return raw
@@ -65,6 +69,8 @@ export function IconDetailPage({ icon, relatedIcons = [] }: IconDetailPageProps)
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const [svgContent, setSvgContent] = useState("");
   const [showCode, setShowCode] = useState(false);
+  const [exportingSize, setExportingSize] = useState<number | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const toggleFavorite = useFavoritesStore((s) => s.toggleFavorite);
   const isFavorite = useFavoritesStore((s) =>
@@ -131,6 +137,28 @@ export function IconDetailPage({ icon, relatedIcons = [] }: IconDetailPageProps)
       window.open(currentPath, "_blank");
     }
   }, [currentPath, icon.slug, activeVariant]);
+
+  const handlePngExport = useCallback(
+    async (size: number) => {
+      if (!currentPath || exportingSize !== null) return;
+      setExportingSize(size);
+      setExportError(null);
+      try {
+        const blob = await svgToPng(currentPath, size);
+        const variantSuffix =
+          activeVariant !== "default"
+            ? `-${activeVariant.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`
+            : "";
+        downloadPng(blob, `${icon.slug}${variantSuffix}-${size}px`);
+      } catch {
+        setExportError("Could not convert this SVG to PNG. Try another variant.");
+        setTimeout(() => setExportError(null), 3000);
+      } finally {
+        setExportingSize(null);
+      }
+    },
+    [currentPath, activeVariant, icon.slug, exportingSize]
+  );
 
   const primaryCategory = icon.categories[0] ?? null;
 
@@ -341,6 +369,42 @@ export function IconDetailPage({ icon, relatedIcons = [] }: IconDetailPageProps)
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Export PNG */}
+          <div>
+            <div className="mb-2 flex items-center gap-1.5">
+              <Image className="h-3.5 w-3.5 text-muted-foreground" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Export PNG
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {PNG_EXPORT_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  disabled={exportingSize !== null}
+                  onClick={() => handlePngExport(size)}
+                  className={cn(
+                    "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors",
+                    exportingSize === size
+                      ? "border-border/50 bg-muted/60 text-muted-foreground"
+                      : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+                  )}
+                >
+                  {exportingSize === size ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Image className="h-3.5 w-3.5" />
+                  )}
+                  {size}px
+                </button>
+              ))}
+            </div>
+            {exportError && (
+              <p className="mt-2 text-xs text-red-500">{exportError}</p>
+            )}
           </div>
 
           {/* SVG code viewer (collapsible) */}
