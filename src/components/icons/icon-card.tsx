@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useState } from "react";
 import { Check, Copy, Download, ExternalLink, Heart } from "lucide-react";
+import posthog from "posthog-js";
 import type { IconEntry } from "@/lib/icons";
 import { useFavoritesStore } from "@/lib/stores/favorites-store";
 import { cn } from "@/lib/utils";
@@ -37,8 +38,15 @@ export const IconCard = memo(function IconCard({
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }
+      posthog.capture("icon_copied", {
+        icon_slug: icon.slug,
+        icon_title: icon.title,
+        format: "svg",
+        source: "card",
+        categories: icon.categories,
+      });
     },
-    [icon.variants.default]
+    [icon.variants.default, icon.slug, icon.title, icon.categories]
   );
 
   const handleDownload = useCallback(
@@ -58,8 +66,16 @@ export const IconCard = memo(function IconCard({
       } catch {
         window.open(icon.variants.default, "_blank");
       }
+      posthog.capture("icon_downloaded", {
+        icon_slug: icon.slug,
+        icon_title: icon.title,
+        variant: "default",
+        file_type: "svg",
+        source: "card",
+        categories: icon.categories,
+      });
     },
-    [icon.variants.default, icon.slug]
+    [icon.variants.default, icon.slug, icon.title, icon.categories]
   );
 
   const handleFavorite = useCallback(

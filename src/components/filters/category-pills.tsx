@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 
 interface CategoryPillsProps {
@@ -24,7 +25,10 @@ export function CategoryPills({
       >
         <button
           type="button"
-          onClick={() => onSelect(null)}
+          onClick={() => {
+            onSelect(null);
+            posthog.capture("category_filtered", { category: null, action: "cleared" });
+          }}
           className={cn(
             "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
             !selected
@@ -38,7 +42,11 @@ export function CategoryPills({
           <button
             key={cat}
             type="button"
-            onClick={() => onSelect(selected === cat ? null : cat)}
+            onClick={() => {
+              const next = selected === cat ? null : cat;
+              onSelect(next);
+              posthog.capture("category_filtered", { category: cat, action: next === null ? "deselected" : "selected" });
+            }}
             className={cn(
               "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               selected === cat

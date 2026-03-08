@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import posthog from "posthog-js";
 import {
   Check,
   CheckCircle,
@@ -353,6 +354,12 @@ export function SubmitForm({
         validation: result,
       });
 
+      posthog.capture("submit_svg_uploaded", {
+        file_size_bytes: file.size,
+        validation_passed: result.valid,
+        failed_checks: result.checks.filter((c) => !c.passed).map((c) => c.name),
+      });
+
       // Auto-fill name from filename
       const suggestedName = filenameToName(file.name);
       setForm((prev) => ({
@@ -695,6 +702,19 @@ export function SubmitForm({
           rel="noopener noreferrer"
           aria-disabled={!canSubmit}
           tabIndex={canSubmit ? undefined : -1}
+          onClick={() => {
+            if (canSubmit) {
+              posthog.capture("submit_form_completed", {
+                icon_name: form.iconName,
+                slug: form.slug,
+                categories: form.categories,
+                has_website_url: !!form.websiteUrl,
+                has_guidelines_url: !!form.guidelinesUrl,
+                has_hex_color: form.hex.length === 6,
+                validation_passed: fileState?.validation?.valid ?? false,
+              });
+            }
+          }}
           className={cn(
             "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors",
             canSubmit

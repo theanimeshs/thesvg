@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import posthog from "posthog-js";
 import {
   Check,
   ChevronDown,
@@ -129,12 +130,23 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
       .catch(() => setSvgContent(""));
   }, [icon, activeVariant]);
 
+  const prevSlugRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!icon) return;
     setActiveVariant("default");
     setShowCode(false);
     setShowSnippets(false);
     setActiveSnippetFormat("react");
-  }, [icon?.slug]);
+    if (icon.slug !== prevSlugRef.current) {
+      prevSlugRef.current = icon.slug;
+      posthog.capture("icon_viewed", {
+        icon_slug: icon.slug,
+        icon_title: icon.title,
+        categories: icon.categories,
+        variant_count: Object.values(icon.variants).filter(Boolean).length,
+      });
+    }
+  }, [icon]);
 
   const handleCopy = useCallback(
     async (format: CopyFormat) => {
@@ -145,6 +157,13 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
       await navigator.clipboard.writeText(text);
       setCopiedFormat(format);
       setTimeout(() => setCopiedFormat(null), 1500);
+      posthog.capture("icon_format_copied", {
+        icon_slug: icon.slug,
+        icon_title: icon.title,
+        format,
+        variant: activeVariant,
+        categories: icon.categories,
+      });
     },
     [icon, svgContent, activeVariant]
   );
@@ -170,11 +189,17 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
   );
 
   const handleCopySnippet = useCallback(async () => {
-    if (!activeSnippet) return;
+    if (!activeSnippet || !icon) return;
     await navigator.clipboard.writeText(activeSnippet);
     setCopiedSnippet(true);
     setTimeout(() => setCopiedSnippet(false), 1500);
-  }, [activeSnippet]);
+    posthog.capture("icon_snippet_copied", {
+      icon_slug: icon.slug,
+      icon_title: icon.title,
+      snippet_format: activeSnippetFormat,
+      variant: activeVariant,
+    });
+  }, [activeSnippet, icon, activeSnippetFormat, activeVariant]);
 
   const handleDownload = useCallback(async () => {
     if (!icon) return;
@@ -199,6 +224,12 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
     } catch {
       window.open(variantPath, "_blank");
     }
+    posthog.capture("icon_svg_downloaded", {
+      icon_slug: icon.slug,
+      icon_title: icon.title,
+      variant: activeVariant,
+      categories: icon.categories,
+    });
   }, [icon, activeVariant]);
 
   const handlePngExport = useCallback(
@@ -218,9 +249,21 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
             ? `-${activeVariant.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()}`
             : "";
         downloadPng(blob, `${icon.slug}${variantSuffix}-${size}px`);
+        posthog.capture("icon_png_exported", {
+          icon_slug: icon.slug,
+          icon_title: icon.title,
+          size_px: size,
+          variant: activeVariant,
+          categories: icon.categories,
+        });
       } catch {
         setExportError("Could not convert this SVG to PNG. Try another variant.");
         setTimeout(() => setExportError(null), 3000);
+        posthog.captureException(new Error("PNG export failed"), {
+          icon_slug: icon.slug,
+          variant: activeVariant,
+          size_px: size,
+        });
       } finally {
         setExportingSize(null);
       }
@@ -266,7 +309,15 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
             {/* Favorite */}
             <button
               type="button"
-              onClick={() => toggleFavorite(icon.slug)}
+              onClick={() => {
+                toggleFavorite(icon.slug);
+                posthog.capture("icon_favorited", {
+                  icon_slug: icon.slug,
+                  icon_title: icon.title,
+                  action: isFavorite ? "removed" : "added",
+                  categories: icon.categories,
+                });
+              }}
               className={cn(
                 "absolute top-2.5 left-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-background/60 backdrop-blur-sm transition-colors",
                 isFavorite
@@ -320,7 +371,17 @@ export function IconDetail({ icon, onClose }: IconDetailProps) {
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setActiveVariant(key)}
+                    onClick={() => {
+                      setActiveVariant(key);
+                      if (key !== activeVariant) {
+                        posthog.capture("icon_variant_switched", {
+                          icon_slug: icon.slug,
+                          icon_title: icon.title,
+                          from_variant: activeVariant,
+                          to_variant: key,
+                        });
+                      }
+                    }}
                     className={cn(
                       "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
                       activeVariant === key

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
+import posthog from "posthog-js";
 
 interface SearchBarProps {
   value: string;
@@ -16,6 +17,7 @@ export function SearchBar({
 }: SearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isMac, setIsMac] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setIsMac(navigator.userAgent.includes("Mac"));
@@ -43,7 +45,16 @@ export function SearchBar({
         ref={inputRef}
         type="text"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          onChange(next);
+          if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+          if (next.trim()) {
+            searchTimerRef.current = setTimeout(() => {
+              posthog.capture("icon_searched", { query: next.trim(), query_length: next.trim().length });
+            }, 800);
+          }
+        }}
         placeholder="Search icons..."
         className="h-9 w-full rounded-lg border border-border/60 bg-card/60 pr-20 pl-9 text-sm backdrop-blur-sm outline-none transition-all placeholder:text-muted-foreground/50 focus:border-ring focus:bg-card focus:ring-1 focus:ring-ring"
         aria-label="Search icons"
