@@ -197,12 +197,7 @@ jobs:
 
           cd ../thesvg
           npm version "$NEW_VERSION" --no-git-tag-version
-          node -e "
-            const pkg = require('./package.json');
-            pkg.dependencies['@thesvg/icons'] = '$NEW_VERSION';
-            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-          echo "Bumped thesvg to: $NEW_VERSION"
+          echo "Bumped thesvg to: $NEW_VERSION (workspace:* resolves @thesvg/icons at publish)"
 
           # Only bump packages that changed
           if [ "$CHANGED_CLI" = "true" ]; then

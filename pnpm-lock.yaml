@@ -141,8 +141,8 @@ importers:
   packages/thesvg:
     dependencies:
       '@thesvg/icons':
-        specifier: 0.3.0
-        version: 0.3.0
+        specifier: workspace:*
+        version: link:../icons
 
 packages:
 
@@ -1286,10 +1286,6 @@ packages:
 
   '@tailwindcss/postcss@4.2.1':
     resolution: {integrity: sha512-OEwGIBnXnj7zJeonOh6ZG9woofIjGrd2BORfvE5p9USYKDCZoQmfqLcfNiRWoJlRWLdNPn2IgVZuWAOM4iTYMw==}
-
-  '@thesvg/icons@0.3.0':
-    resolution: {integrity: sha512-LId/ObmEPIpsFp/XBuJYj1KkU2e5BDRk5J35NwySmJpaEK5cUZW7VBjxH5ZCkmACT1F5STUX5g7sbDvtNaerfg==}
-    engines: {node: '>=18'}
 
   '@ts-morph/common@0.27.0':
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
@@ -4883,8 +4879,6 @@ snapshots:
       '@tailwindcss/oxide': 4.2.1
       postcss: 8.5.8
       tailwindcss: 4.2.1
-
-  '@thesvg/icons@0.3.0': {}
 
   '@ts-morph/common@0.27.0':
     dependencies:
