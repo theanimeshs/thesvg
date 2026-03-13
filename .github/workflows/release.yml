@@ -81,7 +81,7 @@ jobs:
 
           # Map changed directories to package names
           PACKAGES=""
-          if echo "$CHANGED_FILES" | grep -q "^packages/icons/\|^icons/"; then
+          if echo "$CHANGED_FILES" | grep -q "^packages/icons/\|^icons/\|^public/icons/\|^src/data/icons\.json"; then
             PACKAGES="$PACKAGES \"@thesvg/icons\": patch"$'\n'
           fi
           if echo "$CHANGED_FILES" | grep -q "^packages/react/"; then
@@ -104,7 +104,7 @@ jobs:
           fi
 
           # If icons changed, also bump framework packages (they re-export icons)
-          if echo "$CHANGED_FILES" | grep -q "^packages/icons/\|^icons/"; then
+          if echo "$CHANGED_FILES" | grep -q "^packages/icons/\|^icons/\|^public/icons/\|^src/data/icons\.json"; then
             if ! echo "$PACKAGES" | grep -q "@thesvg/react"; then
               PACKAGES="$PACKAGES \"@thesvg/react\": patch"$'\n'
             fi
