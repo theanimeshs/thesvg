@@ -68728,6 +68728,25 @@
     "collection": "brands"
   },
   {
+    "slug": "leedlime",
+    "title": "Leedlime",
+    "aliases": ["lead"],
+    "hex": "BAF350",
+    "categories": [
+      "Software",
+      "Marketing",
+      "Platform",
+      "SaaS"
+    ],
+    "variants": {
+      "default": "/icons/leedlime/default.svg"
+    },
+    "license": "CC0-1.0",
+    "url": "https://leedlime.com",
+    "dateAdded": "2026-03-26",
+    "collection": "brands"
+  },
+  {
     "slug": "leetcode",
     "title": "LeetCode",
     "aliases": [],
